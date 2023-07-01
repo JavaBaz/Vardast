@@ -6,28 +6,34 @@ import javax.swing.table.DefaultTableCellRenderer;
 
 import java.awt.*;
 
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Collections;
 
-public class vardast extends JFrame {
+public class Vardast extends JFrame {
     private List<Task> tasks;
+    private List<Task> doneTasks;
     private DefaultTableModel tableModel;
+    private DefaultTableModel doneTableModel;
     private JTable timetableTable;
+    private JTable doneTable;
     private JTextField taskNameField;
     private JComboBox<String> priorityComboBox;
     private JButton addButton;
     private JButton deleteButton;
     private JButton sortButton;
     private JButton clearButton;
+    private JButton doneButton;
+    private JTabbedPane tabbedPane;
 
-    public vardast() {
-        setTitle("vardast");
+    public Vardast() {
+        setTitle("Vardast");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         tasks = new ArrayList<>();
+        doneTasks = new ArrayList<>();
 
         JPanel inputPanel = new JPanel(new FlowLayout());
         inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -79,7 +85,17 @@ public class vardast extends JFrame {
         clearButton.addActionListener(e -> clearAllTasks());
         inputPanel.add(clearButton);
 
+        doneButton = new JButton("Done");
+        doneButton.setFocusPainted(false);
+        doneButton.setBackground(Color.decode("#2196f3"));
+        doneButton.setForeground(Color.BLACK);
+        doneButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        doneButton.addActionListener(e -> moveTaskToDone());
+        inputPanel.add(doneButton);
+
         add(inputPanel, BorderLayout.NORTH);
+
+        tabbedPane = new JTabbedPane();
 
         tableModel = new DefaultTableModel() {
             @Override
@@ -102,7 +118,32 @@ public class vardast extends JFrame {
         JScrollPane scrollPane = new JScrollPane(timetableTable);
         scrollPane.setPreferredSize(new Dimension(400, 300));
 
-        add(scrollPane, BorderLayout.CENTER);
+        tabbedPane.addTab("Main Tab", scrollPane);
+
+        doneTableModel = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        doneTable = new JTable(doneTableModel);
+        doneTableModel.addColumn("ID");
+        doneTableModel.addColumn("Task Name");
+        doneTableModel.addColumn("Priority");
+
+        doneTable.setRowHeight(30);
+        doneTable.getTableHeader().setFont(doneTable.getTableHeader().getFont().deriveFont(Font.BOLD));
+        doneTable.getTableHeader().setReorderingAllowed(false);
+        doneTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        doneTable.setDefaultRenderer(Object.class, new PriorityCellRenderer());
+
+        JScrollPane doneScrollPane = new JScrollPane(doneTable);
+        doneScrollPane.setPreferredSize(new Dimension(400, 300));
+
+        tabbedPane.addTab("Done Tasks", doneScrollPane);
+
+        add(tabbedPane, BorderLayout.CENTER);
 
         pack();
         setLocationRelativeTo(null);
@@ -164,6 +205,24 @@ public class vardast extends JFrame {
     private void clearFields() {
         taskNameField.setText("");
         priorityComboBox.setSelectedIndex(0);
+    }
+
+    private void moveTaskToDone() {
+        int selectedRow = timetableTable.getSelectedRow();
+        if (selectedRow != -1) {
+            int taskId = (int) tableModel.getValueAt(selectedRow, 0);
+            for (Task task : tasks) {
+                if (task.getId() == taskId) {
+                    doneTasks.add(task);
+                    doneTableModel.addRow(new Object[]{task.getId(), task.getTaskName(), task.getPriority().toString()});
+                    tasks.remove(task);
+                    break;
+                }
+            }
+            tableModel.removeRow(selectedRow);
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a task to mark as done.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void refreshTable() {
@@ -243,7 +302,7 @@ public class vardast extends JFrame {
                 e.printStackTrace();
             }
 
-            vardast app = new vardast();
+            Vardast app = new Vardast();
             app.setVisible(true);
         });
     }
